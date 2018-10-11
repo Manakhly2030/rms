@@ -9,10 +9,12 @@ import requests
 
 @frappe.whitelist()
 def capture_fp(name):
+    # ips = frappe.get_list("Biometric IP")
+    # for ip in ips:
     ip= '10.8.0.3'
     jsondata = {'Quality': '', 'Timeout': ''}
     r = requests.post(
-        'http://10.8.0.3:8004/mfs100/capture', data=jsondata)
+        'http://'+ip+':8004/mfs100/capture', data=jsondata)
     status = r.json()
     if 'IsoTemplate' in status:
         return status['IsoTemplate'], status['BitmapData']
@@ -20,17 +22,19 @@ def capture_fp(name):
 
 @frappe.whitelist()
 def verify_fp(fp):
-    ip = '10.8.0.3'
-    jsondata = {'BioType': 'FMR', 'GalleryTemplate': fp}
-    r = requests.post('http://'+ip+':8004/mfs100/match', data=jsondata)
-    status = r.json()
-    if not status['ErrorCode'] == '-1307':
+    ips = frappe.get_list("Biometric IP")
+    for ip in ips:
+        # ip1 = '10.8.0.4'
+        jsondata = {'BioType': 'FMR', 'GalleryTemplate': fp}
+        r = requests.post('http://'+ip['name']+':8004/mfs100/match', data=jsondata)
+        status = r.json()
+        # if not status['ErrorCode'] == '-1307':
         if 'Status' in status:
             return 'Verified'
         else:
             return 'Not Verified'
-    else:
-        return 'MFS 100 Not Found'
+        # else:
+        #     return 'MFS 100 Not Found'
 
 # import os
 # import socket

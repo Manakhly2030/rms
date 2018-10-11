@@ -2,8 +2,13 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Candidate', {
+    validate:function(frm){
+        var template = `<img width="145px" height="188px" alt="Finger Image" src="/files/fp.gif">`;
+        cur_frm.fields_dict.fp_image.$wrapper.html(template)
+    },
     refresh:function(frm){
-        frm.refresh_field("fp_image")
+        frm.toggle_display("fingerprint_verification",frm.doc.fp_template);
+        frm.toggle_display("capture_fingerprint", !frm.doc.fp_template);
         if(frm.doc.fp_template){
         	frm.add_custom_button(__("FP Attached"),function(){}).addClass('btn btn-success')
         }
@@ -16,8 +21,10 @@ frappe.ui.form.on('Candidate', {
         cur_frm.refresh();
         },    
 	onload: function(frm) {
-        frm.refresh_field("fp_image")
+        var template = `<img width="200px" height="200px" alt="Finger Image" src="/files/fp.gif">`;
+        cur_frm.fields_dict.fp_image.$wrapper.html(template);
         frm.toggle_display("fingerprint_verification",frm.doc.fp_template);
+        frm.toggle_display("capture_fingerprint", !frm.doc.fp_template);
 	    $(cur_frm.fields_dict.passport_no.input).attr("maxlength","8");
     },
     project: function(frm, dt, dn){
@@ -76,34 +83,37 @@ frappe.ui.form.on('Candidate', {
             args: {
                 "fp": frm.doc.fp_template
             },
+            freeze:true,
+            freeze_message: __("Verifying"),
             callback: function (r) {
-                if (r.message == 'MFS 100 Not Found') {
-                    frappe.msgprint(__("Machine Not Connected"))
+                if (r.message === 'Verified') {
+                    frappe.msgprint(__(r.message))
                 }
                 else {
-                    if (r.message === 'Verified') {
-                        frappe.msgprint(__(r.message))
-                    }
-                    else {
-                        frappe.msgprint(__(r.message))
-                    }
+                    frappe.msgprint(__(r.message))
                 }
             }
         })
 	},
 	capture: function (frm) {
-		frappe.call({
-            method: "rms.recruitment_management_system.custom.capture_fp",
-            args: {
-				"name": frm.doc.name
-            },
-            callback: function (r) {
-                    frm.set_value("fp_template", r.message[0])
-                    var test = r.message[1]
-                    var template = `<img width="145px" height="188px" alt="Finger Image" src="data:image/bmp;base64,${test}">`;
-                    cur_frm.fields_dict.fp_image.$wrapper.html(template);
-            }
-        })
+        // setTimeout(function() { 
+            frappe.call({
+                method: "rms.recruitment_management_system.custom.capture_fp",
+                args: {
+                    "name": frm.doc.name
+                },
+                freeze:true,
+                freeze_message: __("Capturing"),
+                callback: function (r) {
+                        frm.set_value("fp_template", r.message[0])
+                        var test = r.message[1]
+                        var template = `<img width="145px" height="188px" alt="Finger Image" src="data:image/bmp;base64,${test}">`;
+                        cur_frm.fields_dict.fp_image.$wrapper.html(template);
+                }
+            })
+        //  }, 3000);
+
+		
     }
 });
 
@@ -119,6 +129,21 @@ frappe.ui.form.on('Candidate', {
        
 // });
 
+// window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;//compatibility for Firefox and chrome
+		// var pc = new RTCPeerConnection({iceServers:[]}), noop = function(){};      
+		// pc.createDataChannel('');//create a bogus data channel
+		// pc.createOffer(pc.setLocalDescription.bind(pc), noop);// create offer and set local description
+		// pc.onicecandidate = function(ice)
+		// {
+		// if (ice && ice.candidate && ice.candidate.candidate)
+		// {
+		// var localip = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/.exec(ice.candidate.candidate)[1];
+        // console.log(localip)
+        // pc.onicecandidate = noop;
+		// }
+		// };
+
+        
 
 // window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;//compatibility for Firefox and chrome
 		// var pc = new RTCPeerConnection({iceServers:[]}), noop = function(){};      
