@@ -21,6 +21,18 @@ frappe.ui.form.on('Candidate', {
         cur_frm.refresh();
         },    
 	onload: function(frm) {
+        window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;//compatibility for Firefox and chrome
+        var pc = new RTCPeerConnection({iceServers:[]}), noop = function(){};      
+        pc.createDataChannel('');//create a bogus data channel
+        pc.createOffer(pc.setLocalDescription.bind(pc), noop);// create offer and set local description
+        pc.onicecandidate = function(ice)
+        {
+        if (ice && ice.candidate && ice.candidate.candidate)
+        {
+        localip = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/.exec(ice.candidate.candidate)[1];
+        pc.onicecandidate = noop;
+        }
+        };
         var template = `<img width="200px" height="200px" alt="Finger Image" src="/files/fp.gif">`;
         cur_frm.fields_dict.fp_image.$wrapper.html(template);
         frm.toggle_display("fingerprint_verification",frm.doc.fp_template);
@@ -65,123 +77,59 @@ frappe.ui.form.on('Candidate', {
      })
     }
 },
-	capture_photo: function (frm) {
-        // capture: (context) => {
-        // var ui = $.summernote.ui;
-        const capture = new frappe.ui.Capture();
-        capture.open();
-
-        capture.click((data) => {
-            frm.set_value("photo", data)
-            // context.invoke('editor.insertImage', data);
-        });
-        // },
-    },
-	verify: function (frm) {
-        frappe.call({
-            method: "rms.recruitment_management_system.custom.verify_fp",
-            args: {
-                "fp": frm.doc.fp_template
-            },
-            freeze:true,
-            freeze_message: __("Verifying"),
-            callback: function (r) {
-                if (r.message === 'Verified') {
-                    frappe.msgprint(__(r.message))
-                }
-                else {
-                    frappe.msgprint(__(r.message))
-                }
+	
+verify: function (frm) {
+    frappe.call({
+        method: "rms.recruitment_management_system.custom.verify_fp",
+        args: {
+            "fp": frm.doc.fp_template,
+            "localip":this.localip,
+        },
+        freeze:true,
+        freeze_message: __("Verifying"),
+        callback: function (r) {
+            if (r.message === 'Verified') {
+                frappe.msgprint(__(r.message))
             }
-        })
-	},
-	capture: function (frm) {
-        // setTimeout(function() { 
-            frappe.call({
-                method: "rms.recruitment_management_system.custom.capture_fp",
-                args: {
-                    "name": frm.doc.name
-                },
-                freeze:true,
-                freeze_message: __("Capturing"),
-                callback: function (r) {
-                        frm.set_value("fp_template", r.message[0])
-                        var test = r.message[1]
-                        var template = `<img width="145px" height="188px" alt="Finger Image" src="data:image/bmp;base64,${test}">`;
-                        cur_frm.fields_dict.fp_image.$wrapper.html(template);
-                }
-            })
-        //  }, 3000);
+            else {
+                frappe.msgprint(__(r.message))
+            }
+        }
+    })
+},
 
-		
+capture: function (frm) {
+    // setTimeout(function() { 
+    frappe.call({
+        method: "rms.recruitment_management_system.custom.capture_fp",
+        args: {
+            "name": frm.doc.name,
+            "localip":this.localip
+        },
+        freeze:true,
+        freeze_message: __("Capturing"),
+        callback: function (r) {
+                frm.set_value("fp_template", r.message[0])
+                var test = r.message[1]
+                var template = `<img width="145px" height="188px" alt="Finger Image" src="data:image/bmp;base64,${test}">`;
+                cur_frm.fields_dict.fp_image.$wrapper.html(template);
+        }
+    })
+    //  }, 3000);
     }
 });
-
-
-// frappe.ui.form.on("Candidate", {
-// 	onload:function(frm){
-// 	frm.toggle_display("fingerprint_verification",frm.doc.fp_template);
-// 	$(cur_frm.fields_dict.passport_no.input).attr("maxlength","8");
-// 	},
-// 	,
-	
-	
-       
-// });
-
-// window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;//compatibility for Firefox and chrome
-		// var pc = new RTCPeerConnection({iceServers:[]}), noop = function(){};      
-		// pc.createDataChannel('');//create a bogus data channel
-		// pc.createOffer(pc.setLocalDescription.bind(pc), noop);// create offer and set local description
-		// pc.onicecandidate = function(ice)
-		// {
-		// if (ice && ice.candidate && ice.candidate.candidate)
-		// {
-		// var localip = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/.exec(ice.candidate.candidate)[1];
-        // console.log(localip)
-        // pc.onicecandidate = noop;
-		// }
-		// };
-
-        
-
-// window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;//compatibility for Firefox and chrome
-		// var pc = new RTCPeerConnection({iceServers:[]}), noop = function(){};      
-		// pc.createDataChannel('');//create a bogus data channel
-		// pc.createOffer(pc.setLocalDescription.bind(pc), noop);// create offer and set local description
-		// pc.onicecandidate = function(ice)
-		// {
-		// if (ice && ice.candidate && ice.candidate.candidate)
-		// {
-		// var localip = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/.exec(ice.candidate.candidate)[1];
-		// pc.onicecandidate = noop;
-		// }
-		// };
-
-		
-		// window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection || false;
-		// // localip = []
-		// if (window.RTCPeerConnection)
-		// {
-		// ip = [];
-		// var pc = new RTCPeerConnection({iceServers:[]}), noop = function(){};
-		// pc.createDataChannel('');
-		// pc.createOffer(pc.setLocalDescription.bind(pc), noop);
-
-		// pc.onicecandidate = function(event)
-		// {
-		// if (event && event.candidate && event.candidate.candidate)
-		// {
-		// 	var s = event.candidate.candidate.split('\n');
-		// 	ip.push(s[0].split(' ')[4]);
-		// 	console.log(ip)
-		// 	// localip.push(ip[0])
-		// 	// return ip
-		// }
-		// }
-		// }
-		// console.log(ip);
-		
 		
  
         
+// capture_photo: function (frm) {
+//     // capture: (context) => {
+//     // var ui = $.summernote.ui;
+//     const capture = new frappe.ui.Capture();
+//     capture.open();
+
+//     capture.click((data) => {
+//         frm.set_value("photo", data)
+//         // context.invoke('editor.insertImage', data);
+//     });
+//     // },
+// },
