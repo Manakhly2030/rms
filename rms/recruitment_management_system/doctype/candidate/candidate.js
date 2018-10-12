@@ -21,18 +21,6 @@ frappe.ui.form.on('Candidate', {
         cur_frm.refresh();
         },    
 	onload: function(frm) {
-        window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;//compatibility for Firefox and chrome
-        var pc = new RTCPeerConnection({iceServers:[]}), noop = function(){};      
-        pc.createDataChannel('');//create a bogus data channel
-        pc.createOffer(pc.setLocalDescription.bind(pc), noop);// create offer and set local description
-        pc.onicecandidate = function(ice)
-        {
-        if (ice && ice.candidate && ice.candidate.candidate)
-        {
-        localip = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/.exec(ice.candidate.candidate)[1];
-        pc.onicecandidate = noop;
-        }
-        };
         var template = `<img width="200px" height="200px" alt="Finger Image" src="/files/fp.gif">`;
         cur_frm.fields_dict.fp_image.$wrapper.html(template);
         frm.toggle_display("fingerprint_verification",frm.doc.fp_template);
@@ -79,48 +67,77 @@ frappe.ui.form.on('Candidate', {
 },
 	
 verify: function (frm) {
-    frappe.call({
-        method: "rms.recruitment_management_system.custom.verify_fp",
-        args: {
-            "fp": frm.doc.fp_template,
-            "localip":this.localip,
-        },
-        freeze:true,
-        freeze_message: __("Verifying"),
-        callback: function (r) {
-            if (r.message === 'Verified') {
-                frappe.msgprint(__(r.message))
+    jsondata = {'BioType': 'FMR', 'GalleryTemplate': frm.doc.fp_template}
+    $.ajax({
+        type: "POST",
+		url: "http://localhost:8004/mfs100/match",
+		data: jsondata,
+		dataType: "json",
+		success: function(data) {
+            if(data.Status){
+                frappe.msgprint(__("Finger Matched"))
             }
-            else {
-                frappe.msgprint(__(r.message))
+            else{
+            if(data.ErrorCode != "0"){
+                if (data.ErrorCode === "-1307"){
+                    frappe.msgprint(__("Machine Not Connected"))
+                }
+                else{
+                    frappe.msgprint(__(data.ErrorDescription))
+                }
+                
+            }
+            else
+            {
+                frappe.msgprint(__("Finger Not Matched"))
             }
         }
-    })
+        },
+        error:function(jqXHR,ajaxOptions,thrownError){
+            if(jqXHR.status === 0){
+                frappe.msgprint(__("Service Unavailable,Check drivers installed correcty"))
+            }
+        }
+	})
 },
 
 capture: function (frm) {
-    // setTimeout(function() { 
-    frappe.call({
-        method: "rms.recruitment_management_system.custom.capture_fp",
-        args: {
-            "name": frm.doc.name,
-            "localip":this.localip
-        },
-        freeze:true,
-        freeze_message: __("Capturing"),
-        callback: function (r) {
-                frm.set_value("fp_template", r.message[0])
-                var test = r.message[1]
-                var template = `<img width="145px" height="188px" alt="Finger Image" src="data:image/bmp;base64,${test}">`;
-                cur_frm.fields_dict.fp_image.$wrapper.html(template);
+    jsondata = {'Quality': '', 'Timeout': ''}
+    $.ajax({
+        type: "POST",
+		url: "http://localhost:8004/mfs100/capture",
+		data: jsondata,
+		dataType: "json",
+		success: function(data) {
+            frm.set_value("fp_template", data.AnsiTemplate)
+            var test = data.BitmapData
+            var template = `<img width="145px" height="188px" alt="Finger Image" src="data:image/bmp;base64,${test}">`;
+            cur_frm.fields_dict.fp_image.$wrapper.html(template);
+            console.log(data)
+            httpStaus = true;
+            res = { httpStaus:httpStaus ,data:data };
         }
-    })
-    //  }, 3000);
+	})
     }
 });
 		
  
-        
+// frappe.call({
+    //     method: "rms.recruitment_management_system.custom.capture_fp",
+    //     args: {
+    //         "name": frm.doc.name,
+    //         "localip":this.localip
+    //     },
+    //     freeze:true,
+    //     freeze_message: __("Capturing"),
+    //     callback: function (r) {
+    //             frm.set_value("fp_template", r.message[0])
+    //             var test = r.message[1]
+    //             var template = `<img width="145px" height="188px" alt="Finger Image" src="data:image/bmp;base64,${test}">`;
+    //             cur_frm.fields_dict.fp_image.$wrapper.html(template);
+    //     }
+    // })
+
 // capture_photo: function (frm) {
 //     // capture: (context) => {
 //     // var ui = $.summernote.ui;
@@ -133,3 +150,16 @@ capture: function (frm) {
 //     });
 //     // },
 // },
+
+// window.RTCPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;//compatibility for Firefox and chrome
+        // var pc = new RTCPeerConnection({iceServers:[]}), noop = function(){};      
+        // pc.createDataChannel('');//create a bogus data channel
+        // pc.createOffer(pc.setLocalDescription.bind(pc), noop);// create offer and set local description
+        // pc.onicecandidate = function(ice)
+        // {
+        // if (ice && ice.candidate && ice.candidate.candidate)
+        // {
+        // localip = /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/.exec(ice.candidate.candidate)[1];
+        // pc.onicecandidate = noop;
+        // }
+        // };
