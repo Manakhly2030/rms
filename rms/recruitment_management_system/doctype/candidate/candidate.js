@@ -67,7 +67,7 @@ frappe.ui.form.on('Candidate', {
 },
 	
 verify: function (frm) {
-    jsondata = {'BioType': 'FMR', 'GalleryTemplate': frm.doc.fp_template}
+    var jsondata = {'BioType': 'FMR', 'GalleryTemplate': frm.doc.fp_template}
     $.ajax({
         type: "POST",
 		url: "http://localhost:8004/mfs100/match",
@@ -102,7 +102,7 @@ verify: function (frm) {
 },
 
 capture: function (frm) {
-    jsondata = {'Quality': '', 'Timeout': ''}
+    var jsondata = {'Quality': '', 'Timeout': ''}
     $.ajax({
         type: "POST",
 		url: "http://localhost:8004/mfs100/capture",
@@ -114,8 +114,8 @@ capture: function (frm) {
             var template = `<img width="145px" height="188px" alt="Finger Image" src="data:image/bmp;base64,${test}">`;
             cur_frm.fields_dict.fp_image.$wrapper.html(template);
             console.log(data)
-            httpStaus = true;
-            res = { httpStaus:httpStaus ,data:data };
+            var httpStaus = true;
+            var res = { httpStaus:httpStaus ,data:data };
         }
 	})
     }
